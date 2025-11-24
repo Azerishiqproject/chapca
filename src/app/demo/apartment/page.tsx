@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTimer } from '../TimerContext';
 
 const formatTime = (milliseconds: number): string => {
@@ -13,21 +13,20 @@ const formatTime = (milliseconds: number): string => {
 
 export default function ApartmentPage() {
   const { stopTimer, isTimerRunning, startPageTimer, stopPageTimer, getCaptchaTimes, getTotalTime } = useTimer();
-  const [captchaTimes, setCaptchaTimes] = useState(getCaptchaTimes());
-  const [totalTime, setTotalTime] = useState(getTotalTime());
+  
+  // useMemo ile hesaplanmış değerleri tut
+  const captchaTimes = useMemo(() => getCaptchaTimes(), [getCaptchaTimes]);
+  const totalTime = useMemo(() => getTotalTime(), [getTotalTime]);
 
   useEffect(() => {
     startPageTimer('Mənzil');
     if (isTimerRunning) {
       stopTimer();
     }
-    // Analiz verilerini güncelle
-    setCaptchaTimes(getCaptchaTimes());
-    setTotalTime(getTotalTime());
     return () => {
       stopPageTimer('Mənzil');
     };
-  }, [isTimerRunning, stopTimer, startPageTimer, stopPageTimer, getCaptchaTimes, getTotalTime]);
+  }, [isTimerRunning, stopTimer, startPageTimer, stopPageTimer]);
 
   // CAPTCHA'ları sayfalara göre kategorize et ve aynı tip CAPTCHA'ları birleştir
   const processCaptchas = (captchas: typeof captchaTimes) => {

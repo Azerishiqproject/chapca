@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTimer } from './TimerContext';
 
 export function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { startTimer, isTimerRunning, elapsedTime, resetTimer, countdown, setCountdown, setIsCardDisabled } = useTimer();
 
   const handleStart = () => {
@@ -27,16 +27,23 @@ export function Navbar() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
   };
 
+  const handleLogoClick = () => {
+    router.push('/demo');
+  };
+
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-      <Link href="/demo" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+      <div 
+        onClick={handleLogoClick}
+        className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
+      >
         <div className="w-12 h-12 bg-blue-600 rounded flex items-center justify-center">
           <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
           </svg>
         </div>
         <span className="text-xl font-bold text-gray-800">MİDA</span>
-      </Link>
+      </div>
       <div className="flex items-center gap-4">
         {/* Başla Button */}
         <button

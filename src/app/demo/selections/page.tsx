@@ -62,11 +62,33 @@ export default function SelectionsPage() {
     router.push('/demo/search');
   };
 
+  const handleNextButton = () => {
+    // Eğer Text CAPTCHA doğrulandıysa, sayfa geçişi yap
+    if (isTextCaptchaVerified) {
+      setShowTextCaptcha(false);
+      setIsTextCaptchaVerified(false);
+      router.push('/demo/search');
+      return;
+    }
+
+    // Eğer CAPTCHA gösteriliyorsa ama doğrulanmadıysa, işlem yapma
+    if ((showTextCaptcha && !isTextCaptchaVerified) || showCaptcha) {
+      return;
+    }
+
+    // Eğer form doldurulmuşsa, Text CAPTCHA göster
+    if (selectedProject) {
+      setShowTextCaptcha(true);
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Eğer Text CAPTCHA doğrulandıysa, Enter ile sayfa geçişi yap
       if (isTextCaptchaVerified && e.key === 'Enter') {
-        handleTextCaptchaSuccess();
+        setShowTextCaptcha(false);
+        setIsTextCaptchaVerified(false);
+        router.push('/demo/search');
         return;
       }
 
@@ -88,7 +110,7 @@ export default function SelectionsPage() {
 
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [selectedProject, showTextCaptcha, showCaptcha, isTextCaptchaVerified, handleTextCaptchaSuccess]);
+  }, [selectedProject, showTextCaptcha, showCaptcha, isTextCaptchaVerified, router]);
 
   return (
     <div className="min-h-screen bg-white p-16">
@@ -266,7 +288,11 @@ export default function SelectionsPage() {
             <button className="px-6 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 bg-gray-50">
               &lt; Əvvəlki
             </button>
-            <button className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium">
+            <button 
+              onClick={handleNextButton}
+              disabled={!selectedProject && !isTextCaptchaVerified}
+              className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium"
+            >
               Növbəti &gt;
             </button>
           </div>

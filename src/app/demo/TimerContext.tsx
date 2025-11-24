@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 
 export interface PageTimeEntry {
   pageName: string;
@@ -197,23 +197,27 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const stopPageTimer = useCallback((pageName: string) => {
     const now = Date.now();
     setPageTimes(prev => {
+      // Check if there's actually a page to update
+      const hasActivePage = prev.some(page => page.pageName === pageName && page.endTime === null);
+      if (!hasActivePage) {
+        return prev; // No change needed, return previous state
+      }
+      
       const updated = prev.map(page => {
         if (page.pageName === pageName && page.endTime === null) {
-          const duration = now - page.startTime;
           return {
             ...page,
             endTime: now,
-            duration
+            duration: now - page.startTime
           };
         }
         return page;
       });
       
-      const saved = JSON.stringify(updated);
-      localStorage.setItem('pageTimes', saved);
+      localStorage.setItem('pageTimes', JSON.stringify(updated));
       return updated;
     });
-  }, [setPageTimes]);
+  }, []);
 
   const startCaptchaTimer = useCallback((captchaName: string) => {
     const now = Date.now();
@@ -254,7 +258,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const getPageTimes = (): PageTimeEntry[] => {
+  const getPageTimes = useCallback((): PageTimeEntry[] => {
     return pageTimes.map(page => {
       if (page.endTime === null) {
         // If page is still active, calculate current duration
@@ -266,9 +270,9 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       }
       return page;
     });
-  };
+  }, [pageTimes]);
 
-  const getCaptchaTimes = (): CaptchaTimeEntry[] => {
+  const getCaptchaTimes = useCallback((): CaptchaTimeEntry[] => {
     return captchaTimes.map(captcha => {
       if (captcha.endTime === null) {
         // If captcha is still active, calculate current duration
@@ -280,31 +284,50 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       }
       return captcha;
     });
-  };
+  }, [captchaTimes]);
 
-  const getTotalTime = (): number => {
+  const getTotalTime = useCallback((): number => {
     return elapsedTime;
-  };
+  }, [elapsedTime]);
+
+  const contextValue = useMemo(() => ({
+    isTimerRunning, 
+    startTimer, 
+    stopTimer, 
+    elapsedTime, 
+    resetTimer,
+    countdown,
+    setCountdown,
+    isCardDisabled,
+    setIsCardDisabled,
+    startPageTimer,
+    stopPageTimer,
+    startCaptchaTimer,
+    stopCaptchaTimer,
+    getPageTimes,
+    getCaptchaTimes,
+    getTotalTime
+  }), [
+    isTimerRunning,
+    startTimer,
+    stopTimer,
+    elapsedTime,
+    resetTimer,
+    countdown,
+    setCountdown,
+    isCardDisabled,
+    setIsCardDisabled,
+    startPageTimer,
+    stopPageTimer,
+    startCaptchaTimer,
+    stopCaptchaTimer,
+    getPageTimes,
+    getCaptchaTimes,
+    getTotalTime
+  ]);
 
   return (
-    <TimerContext.Provider value={{ 
-      isTimerRunning, 
-      startTimer, 
-      stopTimer, 
-      elapsedTime, 
-      resetTimer,
-      countdown,
-      setCountdown,
-      isCardDisabled,
-      setIsCardDisabled,
-      startPageTimer,
-      stopPageTimer,
-      startCaptchaTimer,
-      stopCaptchaTimer,
-      getPageTimes,
-      getCaptchaTimes,
-      getTotalTime
-    }}>
+    <TimerContext.Provider value={contextValue}>
       {children}
     </TimerContext.Provider>
   );
