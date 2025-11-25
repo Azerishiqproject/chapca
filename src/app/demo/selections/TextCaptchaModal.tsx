@@ -136,7 +136,7 @@ export function TextCaptchaModal({ onSuccess, onVerified }: TextCaptchaModalProp
           onClick={() => inputRef.current?.focus()}
           placeholder="Mətni daxil edin"
           disabled={isVerified}
-          className={`w-32 px-3 text-black py-2 text-center text-base font-bold border-2 rounded-lg focus:outline-none focus:ring-2 uppercase tracking-widest transition-all ${
+          className={`w-32 px-3 text-black py-2 text-center text-base font-bold border-2 rounded-lg focus:outline-none focus:ring-2 tracking-widest transition-all ${
             isVerified
               ? 'border-green-400 bg-green-50 text-green-700 cursor-not-allowed'
               : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'

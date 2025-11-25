@@ -159,11 +159,11 @@ export default function SelectionsPage() {
                 <label className="text-base font-medium text-gray-700 whitespace-nowrap">
                   Layihə
                 </label>
-                <div className="relative ml-32">
+                <div className="relative ml-64">
                   <select
                     value={selectedProject}
                     onChange={(e) => setSelectedProject(e.target.value)}
-                    className="w-96 text-sm px-4 py-2 border border-gray-300 rounded-lg appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700"
+                    className="w-60 text-sm px-4 py-2 border border-gray-300 rounded-lg appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700"
                   >
                     <option value="">Layihəni seçin</option>
                     {projects.map((project) => (
