@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTimer } from '../TimerContext';
-import { DateCaptchaModal } from './DateCaptchaModal';
-import { TodayDateCaptchaModal } from './TodayDateCaptchaModal';
+import { Captcha } from '../../components/chapca/Captcha';
 
 export default function SearchPage() {
   const router = useRouter();
@@ -15,17 +14,24 @@ export default function SearchPage() {
   const [floorTo, setFloorTo] = useState('');
   const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
   const [showResults, setShowResults] = useState(false);
-  const [showDateCaptcha, setShowDateCaptcha] = useState(true);
-  const [showTodayDateCaptcha, setShowTodayDateCaptcha] = useState(false);
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [captchaKey, setCaptchaKey] = useState(0);
+  const [isSearchCaptcha, setIsSearchCaptcha] = useState(false);
 
   useEffect(() => {
     startPageTimer('Axtarış');
-    // Sayfa yüklendiğinde modal göster
-    setShowDateCaptcha(true);
+    setCaptchaKey(0);
+    setIsSearchCaptcha(false);
     return () => {
       stopPageTimer('Axtarış');
     };
   }, [startPageTimer, stopPageTimer]);
+
+  const handleCaptchaSuccess = () => {
+    setShowCaptcha(false);
+    setIsSearchCaptcha(false);
+    setShowResults(true);
+  };
 
   // 100 tane mənzil verisi oluştur
   const generateApartments = () => {
@@ -70,13 +76,27 @@ export default function SearchPage() {
     setShowResults(false);
   };
 
-  const handleSearch = () => {
-    // Bugünün tarihini isteyen CAPTCHA göster
-    setShowTodayDateCaptcha(true);
+  // Form validasyonu - tüm alanlar doldurulmalı
+  const isFormValid = () => {
+    return isBuildingTypeSelected && floorFrom !== '' && floorTo !== '' && selectedRooms.length > 0;
   };
 
-  const handleTodayDateCaptchaSuccess = () => {
-    setShowTodayDateCaptcha(false);
+  const handleSearch = () => {
+    // Form validasyonu kontrolü
+    if (!isFormValid()) {
+      alert('Xahiş edirik bütün sahələri doldurun.');
+      return;
+    }
+
+    // CAPTCHA göster
+    setShowCaptcha(true);
+    setIsSearchCaptcha(true);
+    setCaptchaKey(prev => prev + 1);
+  };
+
+  const handleSearchCaptchaSuccess = () => {
+    setShowCaptcha(false);
+    setIsSearchCaptcha(false);
     setShowResults(true);
   };
 
@@ -88,14 +108,19 @@ export default function SearchPage() {
     );
   };
 
-  const handleDateCaptchaSuccess = () => {
-    setShowDateCaptcha(false);
+  const handleInitialCaptchaSuccess = () => {
+    setShowCaptcha(false);
+    setIsSearchCaptcha(false);
   };
 
   return (
     <div className="min-h-screen bg-white">
-        {showDateCaptcha && <DateCaptchaModal onSuccess={handleDateCaptchaSuccess} />}
-        {showTodayDateCaptcha && <TodayDateCaptchaModal onSuccess={handleTodayDateCaptchaSuccess} />}
+        {showCaptcha && isSearchCaptcha && (
+          <Captcha 
+            onSuccess={handleCaptchaSuccess}
+            key={captchaKey}
+          />
+        )}
         
       {/* Step Navigation */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
@@ -152,7 +177,7 @@ export default function SearchPage() {
 
             {/* Bina tipi - Buton */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Bina tipi</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Bina tipi <span className="text-red-500">*</span></label>
               <button
                 onClick={() => setIsBuildingTypeSelected(!isBuildingTypeSelected)}
                 className={`w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 text-sm text-left transition-colors ${
@@ -167,7 +192,7 @@ export default function SearchPage() {
 
             {/* Mərtəbə seçimi */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Mərtəbə seçimi</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Mərtəbə seçimi <span className="text-red-500">*</span></label>
               <div className="flex gap-4">
                 <div className="relative flex-1">
                   <select
@@ -208,7 +233,7 @@ export default function SearchPage() {
 
             {/* Otaq sayı - Çoklu seçim */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Otaq sayı</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Otaq sayı <span className="text-red-500">*</span></label>
               <div className="space-y-3">
                 <div className="flex gap-3">
                   {['1 otaqlı', '2 otaqlı', '3 otaqlı'].map((room) => (
@@ -250,7 +275,8 @@ export default function SearchPage() {
               </button>
               <button 
                 onClick={handleSearch}
-                className="px-6 w-[48%] py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm"
+                disabled={!isFormValid()}
+                className="px-6 w-[48%] py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium text-sm"
               >
                 Axtar
               </button>

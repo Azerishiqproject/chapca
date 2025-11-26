@@ -11,11 +11,26 @@ const formatTime = (milliseconds: number): string => {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
 };
 
+// CAPTCHA adlarını Azərbaycan dilinə çevir
+const getCaptchaDisplayName = (captchaName: string): string => {
+  const names: { [key: string]: string } = {
+    'Rəqəm CAPTCHA': 'Rəqəm CAPTCHA',
+    'Mətn CAPTCHA': 'Mətn CAPTCHA',
+    'Tarix CAPTCHA': 'Tarix CAPTCHA',
+    'Bugünün Tarixi CAPTCHA': 'Bugünün Tarixi CAPTCHA',
+    'Doğum Tarixi CAPTCHA': 'Doğum Tarixi CAPTCHA',
+    'Number CAPTCHA': 'Rəqəm CAPTCHA',
+    'Text CAPTCHA': 'Mətn CAPTCHA',
+    'Date CAPTCHA': 'Tarix CAPTCHA',
+    'Today\'s Date CAPTCHA': 'Bugünün Tarixi CAPTCHA',
+    'Birth Date CAPTCHA': 'Doğum Tarixi CAPTCHA'
+  };
+  return names[captchaName] || captchaName;
+};
+
 export default function ApartmentPage() {
   const { stopTimer, isTimerRunning, startPageTimer, stopPageTimer, getCaptchaTimes, getTotalTime } = useTimer();
   
-  // useMemo ile hesaplanmış değerleri tut
-  const captchaTimes = useMemo(() => getCaptchaTimes(), [getCaptchaTimes]);
   const totalTime = useMemo(() => getTotalTime(), [getTotalTime]);
 
   useEffect(() => {
@@ -28,42 +43,35 @@ export default function ApartmentPage() {
     };
   }, [isTimerRunning, stopTimer, startPageTimer, stopPageTimer]);
 
-  // CAPTCHA'ları sayfalara göre kategorize et ve aynı tip CAPTCHA'ları birleştir
-  const processCaptchas = (captchas: typeof captchaTimes) => {
-    const grouped = captchas.reduce((acc, captcha) => {
-      if (!acc[captcha.captchaName]) {
-        acc[captcha.captchaName] = {
-          captchaName: captcha.captchaName,
-          totalDuration: 0,
-          count: 0,
-          endTime: captcha.endTime
-        };
-      }
-      acc[captcha.captchaName].totalDuration += captcha.duration;
-      acc[captcha.captchaName].count += 1;
-      if (captcha.endTime) {
-        acc[captcha.captchaName].endTime = captcha.endTime;
-      }
-      return acc;
-    }, {} as Record<string, { captchaName: string; totalDuration: number; count: number; endTime: number | null }>);
+  // Her CAPTCHA'yı ayrı ayrı göster (gruplama yok)
+  const allCaptchas = useMemo(() => {
+    const captchaTimes = getCaptchaTimes();
+    
+    // Her CAPTCHA'yı ayrı ayrı göster, sadece duration > 0 olanları filtrele
+    return captchaTimes
+      .filter(c => c.duration > 0)
+      .map((captcha, index) => ({
+        id: `${captcha.captchaName}-${captcha.startTime}-${index}`, // Benzersiz ID
+        captchaName: captcha.captchaName,
+        duration: captcha.duration,
+        endTime: captcha.endTime
+      }));
+  }, [getCaptchaTimes]);
 
-    return Object.values(grouped).map(item => ({
-      captchaName: item.captchaName,
-      duration: item.totalDuration,
-      endTime: item.endTime,
-      count: item.count
-    }));
-  };
-
-  const allSelectionsCaptchas = captchaTimes.filter(c => 
-    c.captchaName === 'Rəqəm CAPTCHA' || c.captchaName === 'Mətn CAPTCHA'
-  );
-  const allSearchCaptchas = captchaTimes.filter(c => 
-    c.captchaName === 'Tarix CAPTCHA' || c.captchaName === 'Bugünün Tarixi CAPTCHA'
-  );
-
-  const selectionsCaptchas = processCaptchas(allSelectionsCaptchas).filter(c => c.duration > 0);
-  const searchCaptchas = processCaptchas(allSearchCaptchas).filter(c => c.duration > 0);
+  // CAPTCHA istatistikleri
+  const captchaStats = useMemo(() => {
+    const totalCaptchas = allCaptchas.length;
+    const totalCaptchaTime = allCaptchas.reduce((sum, c) => sum + c.duration, 0);
+    const averageCaptchaTime = totalCaptchas > 0 ? totalCaptchaTime / totalCaptchas : 0;
+    const netTime = totalTime - totalCaptchaTime; // CAPTCHA olmadan xalis vaxt
+    
+    return {
+      totalCaptchas,
+      totalCaptchaTime,
+      averageCaptchaTime,
+      netTime
+    };
+  }, [allCaptchas, totalTime]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -102,113 +110,106 @@ export default function ApartmentPage() {
       </div>
 
       {/* Main Content */}
-      <div className="p-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">Mənzil</h1>
-        
-        {/* Detaylı Analiz */}
-        <div className="space-y-6">
-          {/* Toplam Zaman */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3">
-              <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Ümumi Vaxt
-            </h2>
-            <div className="text-4xl font-bold text-blue-700 font-mono">
-              {formatTime(totalTime)}
-            </div>
-          </div>
-
-          {/* Seçimlər Sayfası - CAPTCHA Zamanları */}
-          <div className="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-sm">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-3">
-              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Seçimlər
-            </h2>
-            <div className="space-y-3 mt-4">
-              {selectionsCaptchas.length > 0 ? (
-                selectionsCaptchas.map((captcha, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <div className="p-8 bg-gray-50 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-3xl font-bold text-gray-900 mb-8">Mənzil Seçimi</h1>
+          
+          {/* 70-30 Layout */}
+          <div className="flex gap-6">
+            {/* Sol tərəf - CAPTCHA'lar (70%) */}
+            <div className="flex-[7]">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
+                  <h2 className="text-lg font-semibold text-gray-900">CAPTCHA Təhlili</h2>
+                  <p className="text-sm text-gray-500 mt-1">Tamamlanan CAPTCHA'ların detaylı siyahısı</p>
+                </div>
+                <div className="divide-y divide-gray-100">
+                  {allCaptchas.length > 0 ? (
+                    allCaptchas.map((captcha, index) => (
+                      <div key={captcha.id} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 text-sm font-semibold">
+                            {index + 1}
+                          </div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {getCaptchaDisplayName(captcha.captchaName)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            {(captcha.duration / 1000).toFixed(2)}s
+                          </span>
+                          <p className="text-sm font-mono font-semibold text-gray-900 min-w-[80px] text-right">
+                            {formatTime(captcha.duration)}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-6 py-12 text-center">
+                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
+                        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                       </div>
-                      <div>
-                        <p className="font-semibold text-gray-800">
-                          {captcha.captchaName}
-                          {(captcha as any).count > 1 && (
-                            <span className="text-xs text-gray-500 ml-2">({(captcha as any).count}x)</span>
-                          )}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {captcha.endTime ? 'Tamamlandı' : 'Davam edir...'}
-                        </p>
-                      </div>
+                      <p className="text-sm text-gray-500">CAPTCHA məlumatı yoxdur</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-gray-800 font-mono">
-                        {formatTime(captcha.duration)}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {totalTime > 0 ? ((captcha.duration / totalTime) * 100).toFixed(1) : '0'}%
-                      </p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 text-center py-4">CAPTCHA məlumatı yoxdur</p>
-              )}
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* Axtarış Sayfası - CAPTCHA Zamanları */}
-          <div className="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-sm">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-3">
-              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              Axtarış
-            </h2>
-            <div className="space-y-3 mt-4">
-              {searchCaptchas.length > 0 ? (
-                searchCaptchas.map((captcha, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-800">
-                          {captcha.captchaName}
-                          {(captcha as any).count > 1 && (
-                            <span className="text-xs text-gray-500 ml-2">({(captcha as any).count}x)</span>
-                          )}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {captcha.endTime ? 'Tamamlandı' : 'Davam edir...'}
-                        </p>
-                      </div>
+            {/* Sağ tərəf - Zamanlar (30%) */}
+            <div className="flex-[3]">
+              <div className="space-y-4 sticky top-8">
+                {/* Ümumi və Xalis Vaxt */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="px-5 py-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
+                    <p className="text-xs font-semibold text-blue-900 uppercase tracking-wide">Ümumi Vaxt</p>
+                  </div>
+                  <div className="px-5 py-6">
+                    <div className="text-3xl font-bold text-gray-900 font-mono">
+                      {formatTime(totalTime)}
                     </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-gray-800 font-mono">
-                        {formatTime(captcha.duration)}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {totalTime > 0 ? ((captcha.duration / totalTime) * 100).toFixed(1) : '0'}%
-                      </p>
+                    <p className="text-xs text-gray-500 mt-2">CAPTCHA daxil</p>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="px-5 py-4 bg-gradient-to-r from-green-50 to-white border-b border-green-100">
+                    <p className="text-xs font-semibold text-green-900 uppercase tracking-wide">Xalis Vaxt</p>
+                  </div>
+                  <div className="px-5 py-6">
+                    <div className="text-3xl font-bold text-gray-900 font-mono">
+                      {formatTime(captchaStats.netTime)}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">CAPTCHA olmadan</p>
+                  </div>
+                </div>
+
+                {/* CAPTCHA Statistikası */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="px-5 py-4 bg-gradient-to-r from-purple-50 to-white border-b border-purple-100">
+                    <p className="text-xs font-semibold text-purple-900 uppercase tracking-wide">Statistika</p>
+                  </div>
+                  <div className="p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Toplam</span>
+                      <span className="text-xl font-bold text-gray-900">{captchaStats.totalCaptchas}</span>
+                    </div>
+                    <div className="border-t border-gray-100"></div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Əlavə Vaxt</span>
+                      <span className="text-lg font-mono font-semibold text-gray-900">{formatTime(captchaStats.totalCaptchaTime)}</span>
+                    </div>
+                    <div className="border-t border-gray-100"></div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Ortalama</span>
+                      <span className="text-lg font-mono font-semibold text-gray-900">{formatTime(captchaStats.averageCaptchaTime)}</span>
                     </div>
                   </div>
-                ))
-              ) : (
-                <p className="text-gray-500 text-center py-4">CAPTCHA məlumatı yoxdur</p>
-              )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

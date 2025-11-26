@@ -1,18 +1,132 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTimer } from './TimerContext';
 
+type CaptchaFrequency = 'none' | 'low' | 'medium' | 'high';
+type CaptchaType = 'number' | 'text' | 'date' | 'today-date' | 'birth-date';
+
 export default function DemoPage() {
   const { countdown, isCardDisabled, startPageTimer, stopPageTimer } = useTimer();
+  const [birthDate, setBirthDate] = useState('');
+  const [birthDateInput, setBirthDateInput] = useState('');
+  const [captchaFrequency, setCaptchaFrequency] = useState<CaptchaFrequency>('medium');
+  const [enabledCaptchaTypes, setEnabledCaptchaTypes] = useState<CaptchaType[]>(['number', 'text', 'date', 'today-date', 'birth-date']);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [tempFrequency, setTempFrequency] = useState<CaptchaFrequency>('medium');
+  const [tempEnabledTypes, setTempEnabledTypes] = useState<CaptchaType[]>(['number', 'text', 'date', 'today-date', 'birth-date']);
 
   useEffect(() => {
     startPageTimer('Ana Səhifə');
+    
+    // Global CAPTCHA sayacını sıfırla (yeni oturum başlangıcı)
+    localStorage.setItem('globalCaptchaCount', '0');
+    localStorage.setItem('globalCaptchaLimit', '0');
+    localStorage.setItem('shownSpecialCaptchas', '[]'); // Özel CAPTCHA'ları sıfırla
+    console.log('Global CAPTCHA counter reset');
+    
+    // Load birth date from localStorage
+    const savedBirthDate = localStorage.getItem('birthDate');
+    if (savedBirthDate) {
+      setBirthDate(savedBirthDate);
+      setBirthDateInput(savedBirthDate);
+    }
+    // Load CAPTCHA frequency from localStorage
+    const savedFrequency = localStorage.getItem('captchaFrequency') as CaptchaFrequency;
+    if (savedFrequency && ['none', 'low', 'medium', 'high'].includes(savedFrequency)) {
+      setCaptchaFrequency(savedFrequency);
+    }
+    // Load enabled CAPTCHA types from localStorage
+    const savedTypes = localStorage.getItem('enabledCaptchaTypes');
+    if (savedTypes) {
+      try {
+        const types = JSON.parse(savedTypes) as CaptchaType[];
+        if (Array.isArray(types) && types.length > 0) {
+          setEnabledCaptchaTypes(types);
+          setTempEnabledTypes(types);
+        }
+      } catch (e) {
+        // Invalid JSON, use default
+      }
+    }
+    
+    // Load temp frequency
+    setTempFrequency(captchaFrequency);
     return () => {
       stopPageTimer('Ana Səhifə');
     };
   }, [startPageTimer, stopPageTimer]);
+
+  const handleBirthDateInputChange = (value: string) => {
+    // Sadece rakamları al
+    const digits = value.replace(/\D/g, '');
+    
+    // Maksimum 8 rakam
+    if (digits.length > 8) return;
+    
+    // Format: DD/MM/YYYY
+    let formatted = '';
+    if (digits.length <= 2) {
+      formatted = digits;
+    } else if (digits.length <= 4) {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    } else {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
+    }
+    
+    setBirthDateInput(formatted);
+  };
+
+  const handleSaveBirthDate = () => {
+    // Validate date format (DD/MM/YYYY)
+    const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    if (!dateRegex.test(birthDateInput)) {
+      alert('Xahiş edirik tarixi düzgün formatda daxil edin (DD/MM/YYYY)');
+      return;
+    }
+    
+    // Validate date values
+    const [day, month, year] = birthDateInput.split('/').map(Number);
+    if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900 || year > 2100) {
+      alert('Xahiş edirik düzgün tarix dəyərləri daxil edin');
+      return;
+    }
+    
+    localStorage.setItem('birthDate', birthDateInput);
+    setBirthDate(birthDateInput);
+    alert('Doğum tarixi uğurla qeyd edildi!');
+  };
+
+  const handleClearBirthDate = () => {
+    localStorage.removeItem('birthDate');
+    // Doğum tarihi CAPTCHA'sının gösterildiği bilgisini de temizle
+    const shownSpecialCaptchas = JSON.parse(localStorage.getItem('shownSpecialCaptchas') || '[]') as string[];
+    const updatedShownCaptchas = shownSpecialCaptchas.filter((type: string) => type !== 'birth-date');
+    localStorage.setItem('shownSpecialCaptchas', JSON.stringify(updatedShownCaptchas));
+    setBirthDate('');
+    setBirthDateInput('');
+    alert('Doğum tarixi silindi!');
+  };
+
+  const handleOpenSettings = () => {
+    setTempFrequency(captchaFrequency);
+    setTempEnabledTypes(enabledCaptchaTypes);
+    setShowSettingsModal(true);
+  };
+
+  const handleCloseSettings = () => {
+    setShowSettingsModal(false);
+  };
+
+  const handleSaveSettings = () => {
+    setCaptchaFrequency(tempFrequency);
+    setEnabledCaptchaTypes(tempEnabledTypes);
+    localStorage.setItem('captchaFrequency', tempFrequency);
+    localStorage.setItem('enabledCaptchaTypes', JSON.stringify(tempEnabledTypes));
+    setShowSettingsModal(false);
+    alert('Ayarlar uğurla qeyd edildi!');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -166,7 +280,19 @@ export default function DemoPage() {
 
         {/* Right Sidebar */}
         <div className="w-96 bg-white border-l border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Şəxsi məlumatlar</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">Şəxsi məlumatlar</h2>
+            <button
+              onClick={handleOpenSettings}
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Ayarlar
+            </button>
+          </div>
           
           {/* Tabs */}
           <div className="flex gap-2 mb-6 border-b border-gray-200">
@@ -191,6 +317,36 @@ export default function DemoPage() {
             <div>
               <p className="text-gray-500 mb-1">Doğulduğu tarix və yer</p>
               <p className="text-gray-800 font-medium">01/06/1986, AZƏRBAYCAN, MASALLI şəh.</p>
+            </div>
+            <div>
+              <p className="text-gray-500 mb-2">Doğum tarixi (CAPTCHA üçün)</p>
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={birthDateInput}
+                  onChange={(e) => handleBirthDateInputChange(e.target.value)}
+                  placeholder="DD/MM/YYYY"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  maxLength={10}
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveBirthDate}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Kaydet
+                </button>
+                <button
+                  onClick={handleClearBirthDate}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Sıfırla
+                </button>
+              </div>
+              {birthDate && (
+                <p className="text-xs text-green-600 mt-2">Qeyd edilmiş: {birthDate}</p>
+              )}
             </div>
             <div>
               <p className="text-gray-500 mb-1">Ünvan</p>
@@ -228,6 +384,160 @@ export default function DemoPage() {
       <footer className="bg-white border-t border-gray-200 px-6 py-4">
         <p className="text-sm text-gray-600">2025 © MİDA</p>
       </footer>
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Blur Background */}
+          <div 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={handleCloseSettings}
+          ></div>
+          
+          {/* Modal */}
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto animate-[slideUp_0.3s_ease-out] overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white">CAPTCHA Ayarları</h2>
+                <button
+                  onClick={handleCloseSettings}
+                  className="text-white hover:text-gray-200 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* CAPTCHA Sıklığı */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  CAPTCHA sıklığı
+                </label>
+                <select
+                  value={tempFrequency}
+                  onChange={(e) => setTempFrequency(e.target.value as CaptchaFrequency)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="none">CAPTCHAsız</option>
+                  <option value="low">Az CAPTCHAlı</option>
+                  <option value="medium">Orta CAPTCHAlı</option>
+                  <option value="high">Çok CAPTCHAlı</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {tempFrequency === 'none' && '0 CAPTCHA'}
+                  {tempFrequency === 'low' && '2 CAPTCHA'}
+                  {tempFrequency === 'medium' && '5 CAPTCHA'}
+                  {tempFrequency === 'high' && '7-8 CAPTCHA'}
+                </p>
+              </div>
+
+              {/* CAPTCHA Türleri */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  CAPTCHA türləri
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={tempEnabledTypes.includes('number')}
+                      onChange={(e) => {
+                        const newTypes: CaptchaType[] = e.target.checked
+                          ? [...tempEnabledTypes, 'number']
+                          : tempEnabledTypes.filter(t => t !== 'number') as CaptchaType[];
+                        setTempEnabledTypes(newTypes);
+                      }}
+                      className="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded"
+                    />
+                    <span className="text-sm text-gray-700">Rəqəm CAPTCHA</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={tempEnabledTypes.includes('text')}
+                      onChange={(e) => {
+                        const newTypes: CaptchaType[] = e.target.checked
+                          ? [...tempEnabledTypes, 'text']
+                          : tempEnabledTypes.filter(t => t !== 'text') as CaptchaType[];
+                        setTempEnabledTypes(newTypes);
+                      }}
+                      className="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded"
+                    />
+                    <span className="text-sm text-gray-700">Metin CAPTCHA</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={tempEnabledTypes.includes('date')}
+                      onChange={(e) => {
+                        const newTypes: CaptchaType[] = e.target.checked
+                          ? [...tempEnabledTypes, 'date']
+                          : tempEnabledTypes.filter(t => t !== 'date') as CaptchaType[];
+                        setTempEnabledTypes(newTypes);
+                      }}
+                      className="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded"
+                    />
+                    <span className="text-sm text-gray-700">Tarix CAPTCHA</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={tempEnabledTypes.includes('today-date')}
+                      onChange={(e) => {
+                        const newTypes: CaptchaType[] = e.target.checked
+                          ? [...tempEnabledTypes, 'today-date']
+                          : tempEnabledTypes.filter(t => t !== 'today-date') as CaptchaType[];
+                        setTempEnabledTypes(newTypes);
+                      }}
+                      className="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded"
+                    />
+                    <span className="text-sm text-gray-700">Bugünün Tarixi CAPTCHA</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={tempEnabledTypes.includes('birth-date')}
+                      onChange={(e) => {
+                        const newTypes: CaptchaType[] = e.target.checked
+                          ? [...tempEnabledTypes, 'birth-date']
+                          : tempEnabledTypes.filter(t => t !== 'birth-date') as CaptchaType[];
+                        setTempEnabledTypes(newTypes);
+                      }}
+                      disabled={!birthDate}
+                      className="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <span className={`text-sm ${!birthDate ? 'text-gray-400' : 'text-gray-700'}`}>
+                      Doğum Tarixi CAPTCHA
+                      {!birthDate && <span className="text-xs ml-1">(Doğum tarixi qeyd edilməlidir)</span>}
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <div className="flex gap-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={handleCloseSettings}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Ləğv et
+                </button>
+                <button
+                  onClick={handleSaveSettings}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+                >
+                  Kaydet
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

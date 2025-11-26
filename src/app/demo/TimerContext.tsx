@@ -109,13 +109,19 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let animationFrame: number | null = null;
+    let lastUpdateTime = Date.now();
     
     if (isTimerRunning && startTime) {
       const update = () => {
         const now = Date.now();
-        const elapsed = now - startTime;
-        setElapsedTime(elapsed);
-        localStorage.setItem('timerElapsed', elapsed.toString());
+        
+        // Throttle updates to prevent excessive re-renders (update every 100ms)
+        if (now - lastUpdateTime >= 100) {
+          const elapsed = now - startTime;
+          setElapsedTime(elapsed);
+          localStorage.setItem('timerElapsed', elapsed.toString());
+          lastUpdateTime = now;
+        }
         
         animationFrame = requestAnimationFrame(update);
       };
@@ -222,6 +228,12 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const startCaptchaTimer = useCallback((captchaName: string) => {
     const now = Date.now();
     setCaptchaTimes(prev => {
+      // Check if there's already an active entry for this CAPTCHA
+      const hasActive = prev.some(entry => entry.captchaName === captchaName && entry.endTime === null);
+      if (hasActive) {
+        return prev; // Don't add duplicate
+      }
+      
       const updated = [...prev];
       updated.push({
         captchaName,
@@ -230,8 +242,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         duration: 0
       });
       
-      const saved = JSON.stringify(updated);
-      localStorage.setItem('captchaTimes', saved);
+      localStorage.setItem('captchaTimes', JSON.stringify(updated));
       return updated;
     });
   }, []);
@@ -239,6 +250,12 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const stopCaptchaTimer = useCallback((captchaName: string) => {
     const now = Date.now();
     setCaptchaTimes(prev => {
+      // Check if there's an active entry to stop
+      const hasActive = prev.some(entry => entry.captchaName === captchaName && entry.endTime === null);
+      if (!hasActive) {
+        return prev; // Nothing to stop
+      }
+      
       const updated = [...prev];
       // Find the last entry with this name that hasn't ended
       for (let i = updated.length - 1; i >= 0; i--) {
@@ -252,8 +269,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         }
       }
       
-      const saved = JSON.stringify(updated);
-      localStorage.setItem('captchaTimes', saved);
+      localStorage.setItem('captchaTimes', JSON.stringify(updated));
       return updated;
     });
   }, []);

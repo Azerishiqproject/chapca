@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTimer } from '../TimerContext';
+import { useTimer } from '../../demo/TimerContext';
 
 interface CaptchaModalProps {
   onSuccess: () => void;
@@ -39,6 +39,7 @@ export function CaptchaModal({ onSuccess }: CaptchaModalProps) {
     });
 
     if (isCorrect) {
+      stopCaptchaTimer('Rəqəm CAPTCHA');
       onSuccess();
     } else {
       if (attempts + 1 >= maxAttempts) {

@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTimer } from '../TimerContext';
-import { CaptchaModal } from './CaptchaModal';
-import { TextCaptchaModal } from './TextCaptchaModal';
+import { Captcha } from '../../components/chapca/Captcha';
 
 const projects = [
   { id: 'yasamal', name: 'Yasamal Yaşayış Kompleksi', bold: false, faded: false },
@@ -26,14 +25,8 @@ export default function SelectionsPage() {
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [selectionMethod, setSelectionMethod] = useState('');
-  const [captchaCount, setCaptchaCount] = useState(() => {
-    // Random olarak CAPTCHA kaç kere çıkacak: 0, 1 veya 2
-    return Math.floor(Math.random() * 3); // 0, 1 veya 2
-  });
-  const [currentCaptchaIndex, setCurrentCaptchaIndex] = useState(0);
-  const [showTextCaptcha, setShowTextCaptcha] = useState(false);
-  const [isTextCaptchaVerified, setIsTextCaptchaVerified] = useState(false);
-  const showCaptcha = currentCaptchaIndex < captchaCount;
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
 
   useEffect(() => {
     startPageTimer('Seçimlər');
@@ -43,78 +36,101 @@ export default function SelectionsPage() {
   }, [startPageTimer, stopPageTimer]);
 
   const handleCaptchaSuccess = () => {
-    if (currentCaptchaIndex + 1 < captchaCount) {
-      // Daha fazla CAPTCHA gösterilecek
-      setCurrentCaptchaIndex(currentCaptchaIndex + 1);
-    } else {
-      // Tüm CAPTCHA'lar tamamlandı
-      setCurrentCaptchaIndex(captchaCount); // Modal'ı kapatmak için
-    }
+    setShowCaptcha(false);
+    setIsCaptchaVerified(true);
   };
 
-  const handleTextCaptchaVerified = () => {
-    setIsTextCaptchaVerified(true);
-  };
-
-  const handleTextCaptchaSuccess = () => {
-    setShowTextCaptcha(false);
-    setIsTextCaptchaVerified(false);
+  const handleFinalCaptchaSuccess = () => {
+    setShowCaptcha(false);
+    setIsCaptchaVerified(false);
     router.push('/demo/search');
   };
 
-  const handleNextButton = () => {
-    // Eğer Text CAPTCHA doğrulandıysa, sayfa geçişi yap
-    if (isTextCaptchaVerified) {
-      setShowTextCaptcha(false);
-      setIsTextCaptchaVerified(false);
+  // Form validasyonu - tüm alanlar doldurulmalı
+  const isFormValid = useCallback(() => {
+    return selectedProject !== '' && paymentMethod !== '' && selectionMethod !== '';
+  }, [selectedProject, paymentMethod, selectionMethod]);
+
+  const handleNextButton = useCallback(() => {
+    // Eğer CAPTCHA doğrulandıysa, sayfa geçişi yap
+    if (isCaptchaVerified) {
+      setShowCaptcha(false);
+      setIsCaptchaVerified(false);
       router.push('/demo/search');
       return;
     }
 
     // Eğer CAPTCHA gösteriliyorsa ama doğrulanmadıysa, işlem yapma
-    if ((showTextCaptcha && !isTextCaptchaVerified) || showCaptcha) {
+    if (showCaptcha && !isCaptchaVerified) {
       return;
     }
 
-    // Eğer form doldurulmuşsa, Text CAPTCHA göster
-    if (selectedProject) {
-      setShowTextCaptcha(true);
+    // Form validasyonu kontrolü
+    const isValid = selectedProject !== '' && paymentMethod !== '' && selectionMethod !== '';
+    if (!isValid) {
+      alert('Xahiş edirik bütün sahələri doldurun.');
+      return;
     }
-  };
+
+    // Eğer form doldurulmuşsa, CAPTCHA göster
+    if (selectedProject && paymentMethod && selectionMethod) {
+      setShowCaptcha(true);
+    }
+  }, [selectedProject, paymentMethod, selectionMethod, showCaptcha, isCaptchaVerified, router]);
+
+  // Tüm alanları otomatik doldur
+  const autoFillForm = useCallback(() => {
+    if (!selectedProject) {
+      setSelectedProject('yasamal'); // İlk proje
+    }
+    if (!paymentMethod) {
+      setPaymentMethod('own'); // Öz vəsaiti hesabına
+    }
+    if (!selectionMethod) {
+      setSelectionMethod('map'); // Xəritə üzərində
+    }
+  }, [selectedProject, paymentMethod, selectionMethod]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Eğer Text CAPTCHA doğrulandıysa, Enter ile sayfa geçişi yap
-      if (isTextCaptchaVerified && e.key === 'Enter') {
-        setShowTextCaptcha(false);
-        setIsTextCaptchaVerified(false);
+      // Eğer CAPTCHA doğrulandıysa, Enter ile sayfa geçişi yap
+      if (isCaptchaVerified && e.key === 'Enter') {
+        setShowCaptcha(false);
+        setIsCaptchaVerified(false);
         router.push('/demo/search');
         return;
       }
 
       // Eğer CAPTCHA gösteriliyorsa ama doğrulanmadıysa, Enter'ı işleme
-      if ((showTextCaptcha && !isTextCaptchaVerified) || showCaptcha) {
+      if (showCaptcha && !isCaptchaVerified) {
         return;
       }
       
-      // Eğer form doldurulmuşsa ve Enter'a basılmışsa
-      if (e.key === 'Enter' && selectedProject) {
+      // Enter tuşuna basıldığında
+      if (e.key === 'Enter') {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
-        // Text CAPTCHA göster
-        setShowTextCaptcha(true);
+        
+        // Önce tüm alanları otomatik doldur
+        autoFillForm();
+        
+        // Kısa bir gecikme sonrası handleNextButton'ı çağır (state güncellemesi için)
+        setTimeout(() => {
+          handleNextButton();
+        }, 10);
+        
         return false;
       }
     };
 
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [selectedProject, showTextCaptcha, showCaptcha, isTextCaptchaVerified, router]);
+  }, [autoFillForm, handleNextButton, showCaptcha, isCaptchaVerified, router]);
 
   return (
     <div className="min-h-screen bg-white p-16">
-        {showCaptcha && <CaptchaModal onSuccess={handleCaptchaSuccess} key={currentCaptchaIndex} />}
+        {showCaptcha && <Captcha onSuccess={handleCaptchaSuccess} />}
         
         {/* Step Navigation */}
         <div className="bg-white border-b border-gray-200 px-6 py-4">
@@ -145,7 +161,6 @@ export default function SelectionsPage() {
           {/* Left Sidebar Indicator */}
           <div className="w-1 bg-green-500 relative">
             <div className="absolute top-8 left-0 pl-4 whitespace-nowrap">
-              <span className="text-sm text-gray-600">Mənzil sifarişi</span>
             </div>
           </div>
           
@@ -157,7 +172,7 @@ export default function SelectionsPage() {
               {/* Layihə Section */}
               <div className="flex items-center gap-4 py-2">
                 <label className="text-base font-medium text-gray-700 whitespace-nowrap">
-                  Layihə
+                  Layihə <span className="text-red-500">*</span>
                 </label>
                 <div className="relative ml-64">
                   <select
@@ -183,7 +198,7 @@ export default function SelectionsPage() {
               {/* Ödəniş üsulu Section */}
               <div className="py-2">
                 <label className="block text-base font-medium text-gray-700 mb-3">
-                  Ödəniş üsulu
+                  Ödəniş üsulu <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-6">
                   <label className={`flex items-center gap-3 py-2 px-4 ${!selectedProject ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
@@ -221,39 +236,42 @@ export default function SelectionsPage() {
               {/* Mənzil seçimi üsulu Section */}
               <div className="py-2">
                 <label className="block text-base font-medium text-gray-700 mb-3">
-                  Mənzil seçimi üsulu
+                  Mənzil seçimi üsulu <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-6">
-                  <label className="flex items-center gap-3 cursor-pointer py-2 px-4">
+                  <label className={`flex items-center gap-3 cursor-pointer py-2 px-4 ${!selectedProject ? 'cursor-not-allowed opacity-50' : ''}`}>
                     <input
                       type="radio"
                       name="selection"
                       value="map"
                       checked={selectionMethod === 'map'}
                       onChange={(e) => setSelectionMethod(e.target.value)}
-                      className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                      disabled={!selectedProject}
+                      className="w-5 h-5 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed"
                     />
                     <span className="text-gray-700 text-base">Xəritə üzərində</span>
                   </label>
-                  <label className="flex items-center gap-3 cursor-pointer py-2 px-4">
+                  <label className={`flex items-center gap-3 cursor-pointer py-2 px-4 ${!selectedProject ? 'cursor-not-allowed opacity-50' : ''}`}>
                     <input
                       type="radio"
                       name="selection"
                       value="params"
                       checked={selectionMethod === 'params'}
                       onChange={(e) => setSelectionMethod(e.target.value)}
-                      className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                      disabled={!selectedProject}
+                      className="w-5 h-5 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed"
                     />
                     <span className="text-gray-700 text-base">Parametrlər üzrə</span>
                   </label>
-                  <label className="flex items-center gap-3 cursor-pointer py-2 px-4">
+                  <label className={`flex items-center gap-3 cursor-pointer py-2 px-4 ${!selectedProject ? 'cursor-not-allowed opacity-50' : ''}`}>
                     <input
                       type="radio"
                       name="selection"
                       value="address"
                       checked={selectionMethod === 'address'}
                       onChange={(e) => setSelectionMethod(e.target.value)}
-                      className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                      disabled={!selectedProject}
+                      className="w-5 h-5 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed"
                     />
                     <span className="text-gray-700 text-base">Ünvan üzrə</span>
                   </label>
@@ -261,10 +279,9 @@ export default function SelectionsPage() {
               </div>
 
               {/* Warning Banner ve CAPTCHA */}
-              {showTextCaptcha ? (
-                <TextCaptchaModal 
-                  onSuccess={handleTextCaptchaSuccess} 
-                  onVerified={handleTextCaptchaVerified}
+              {showCaptcha ? (
+                <Captcha 
+                  onSuccess={handleFinalCaptchaSuccess}
                 />
               ) : (
                 <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
@@ -290,7 +307,7 @@ export default function SelectionsPage() {
             </button>
             <button 
               onClick={handleNextButton}
-              disabled={!selectedProject && !isTextCaptchaVerified}
+              disabled={!isFormValid() && !isCaptchaVerified}
               className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium"
             >
               Növbəti &gt;
