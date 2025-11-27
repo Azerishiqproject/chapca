@@ -1,5 +1,6 @@
 import { TimerProvider } from './TimerContext';
 import { Navbar } from './Navbar';
+import { PasswordProtection } from './PasswordProtection';
 
 export default function DemoLayout({
   children,
@@ -7,10 +8,12 @@ export default function DemoLayout({
   children: React.ReactNode;
 }) {
   return (
-    <TimerProvider>
-      <Navbar />
-      {children}
-    </TimerProvider>
+    <PasswordProtection>
+      <TimerProvider>
+        <Navbar />
+        {children}
+      </TimerProvider>
+    </PasswordProtection>
   );
 }
 

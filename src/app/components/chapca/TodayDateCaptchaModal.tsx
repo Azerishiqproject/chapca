@@ -15,7 +15,26 @@ export function TodayDateCaptchaModal({ onSuccess }: TodayDateCaptchaModalProps)
   const [captchaType, setCaptchaType] = useState<CaptchaType>('date');
   const [input, setInput] = useState('');
   const [numpadInput, setNumpadInput] = useState('');
+  const [numpadLayout, setNumpadLayout] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Generate numpad layout (50% standard, 50% random)
+  const generateNumpadLayout = (): string[] => {
+    const standardLayout = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+    const useRandom = Math.random() < 0.5; // 50% chance
+    
+    if (useRandom) {
+      // Shuffle array using Fisher-Yates algorithm
+      const shuffled = [...standardLayout];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    } else {
+      return standardLayout;
+    }
+  };
 
   // Generate today's date CAPTCHA
   const generateTodayDateCaptcha = () => {
@@ -50,6 +69,8 @@ export function TodayDateCaptchaModal({ onSuccess }: TodayDateCaptchaModalProps)
     const newCaptcha = generateRandomCaptcha();
     setCaptcha(newCaptcha.value);
     setCaptchaType(newCaptcha.type);
+    // Generate numpad layout (50% standard, 50% random)
+    setNumpadLayout(generateNumpadLayout());
     return () => {
       stopCaptchaTimer('Bugünün Tarixi CAPTCHA');
     };
@@ -96,6 +117,8 @@ export function TodayDateCaptchaModal({ onSuccess }: TodayDateCaptchaModalProps)
       setCaptchaType(newCaptcha.type);
       setInput('');
       setNumpadInput('');
+      // Generate new numpad layout (50% standard, 50% random)
+      setNumpadLayout(generateNumpadLayout());
       if (inputRef.current && captchaType === 'date') {
         inputRef.current.focus();
       }
@@ -237,78 +260,45 @@ export function TodayDateCaptchaModal({ onSuccess }: TodayDateCaptchaModalProps)
               </div>
             </div>
 
-            {/* Numpad - Standard phone layout */}
+            {/* Numpad - Dynamic layout (standard or random) */}
             <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto">
-              {/* Row 1: 1, 2, 3 */}
-              <button
-                type="button"
-                onClick={() => handleNumpadClick('1')}
-                className="bg-white border border-gray-300 hover:bg-gray-50 text-black font-bold text-lg py-3 px-4 rounded transition-colors"
-              >
-                1
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNumpadClick('2')}
-                className="bg-white border border-gray-300 hover:bg-gray-50 text-black font-bold text-lg py-3 px-4 rounded transition-colors"
-              >
-                2
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNumpadClick('3')}
-                className="bg-white border border-gray-300 hover:bg-gray-50 text-black font-bold text-lg py-3 px-4 rounded transition-colors"
-              >
-                3
-              </button>
+              {/* Row 1: First 3 numbers from layout */}
+              {numpadLayout.slice(0, 3).map((num) => (
+                <button
+                  key={num}
+                  type="button"
+                  onClick={() => handleNumpadClick(num)}
+                  className="bg-white border border-gray-300 hover:bg-gray-50 text-black font-bold text-lg py-3 px-4 rounded transition-colors"
+                >
+                  {num}
+                </button>
+              ))}
               
-              {/* Row 2: 4, 5, 6 */}
-              <button
-                type="button"
-                onClick={() => handleNumpadClick('4')}
-                className="bg-white border border-gray-300 hover:bg-gray-50 text-black font-bold text-lg py-3 px-4 rounded transition-colors"
-              >
-                4
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNumpadClick('5')}
-                className="bg-white border border-gray-300 hover:bg-gray-50 text-black font-bold text-lg py-3 px-4 rounded transition-colors"
-              >
-                5
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNumpadClick('6')}
-                className="bg-white border border-gray-300 hover:bg-gray-50 text-black font-bold text-lg py-3 px-4 rounded transition-colors"
-              >
-                6
-              </button>
+              {/* Row 2: Next 3 numbers from layout */}
+              {numpadLayout.slice(3, 6).map((num) => (
+                <button
+                  key={num}
+                  type="button"
+                  onClick={() => handleNumpadClick(num)}
+                  className="bg-white border border-gray-300 hover:bg-gray-50 text-black font-bold text-lg py-3 px-4 rounded transition-colors"
+                >
+                  {num}
+                </button>
+              ))}
               
-              {/* Row 3: 7, 8, 9 */}
-              <button
-                type="button"
-                onClick={() => handleNumpadClick('7')}
-                className="bg-white border border-gray-300 hover:bg-gray-50 text-black font-bold text-lg py-3 px-4 rounded transition-colors"
-              >
-                7
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNumpadClick('8')}
-                className="bg-white border border-gray-300 hover:bg-gray-50 text-black font-bold text-lg py-3 px-4 rounded transition-colors"
-              >
-                8
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNumpadClick('9')}
-                className="bg-white border border-gray-300 hover:bg-gray-50 text-black font-bold text-lg py-3 px-4 rounded transition-colors"
-              >
-                9
-              </button>
+              {/* Row 3: Next 3 numbers from layout */}
+              {numpadLayout.slice(6, 9).map((num) => (
+                <button
+                  key={num}
+                  type="button"
+                  onClick={() => handleNumpadClick(num)}
+                  className="bg-white border border-gray-300 hover:bg-gray-50 text-black font-bold text-lg py-3 px-4 rounded transition-colors"
+                >
+                  {num}
+                </button>
+              ))}
               
-              {/* Row 4: X (clear), 0, ← (backspace) */}
+              {/* Row 4: X (clear), last number (0 or random), ← (backspace) */}
               <button
                 type="button"
                 onClick={() => handleNumpadClick('clear')}
@@ -316,13 +306,15 @@ export function TodayDateCaptchaModal({ onSuccess }: TodayDateCaptchaModalProps)
               >
                 ✕
               </button>
-              <button
-                type="button"
-                onClick={() => handleNumpadClick('0')}
-                className="bg-white border border-gray-300 hover:bg-gray-50 text-black font-bold text-lg py-3 px-4 rounded transition-colors"
-              >
-                0
-              </button>
+              {numpadLayout.length > 9 && (
+                <button
+                  type="button"
+                  onClick={() => handleNumpadClick(numpadLayout[9])}
+                  className="bg-white border border-gray-300 hover:bg-gray-50 text-black font-bold text-lg py-3 px-4 rounded transition-colors"
+                >
+                  {numpadLayout[9]}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => handleNumpadClick('backspace')}
