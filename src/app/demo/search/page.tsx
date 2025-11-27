@@ -180,7 +180,7 @@ export default function SearchPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Bina tipi <span className="text-red-500">*</span></label>
               <button
                 onClick={() => setIsBuildingTypeSelected(!isBuildingTypeSelected)}
-                className={`w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 text-sm text-left transition-colors ${
+                className={`w-full px-4 py-2 border cursor-pointer border-gray-300 rounded-lg text-gray-700 text-sm text-left transition-colors ${
                   isBuildingTypeSelected
                     ? 'bg-gray-100 '
                     : 'bg-white '
@@ -198,7 +198,7 @@ export default function SearchPage() {
                   <select
                     value={floorFrom}
                     onChange={(e) => setFloorFrom(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 text-sm"
+                    className="w-full px-4 cursor-pointer py-2 border border-gray-300 rounded-lg appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 text-sm"
                   >
                     <option value="">Seçin</option>
                     {isBuildingTypeSelected && Array.from({ length: 9 }, (_, i) => i + 1).map(floor => (
@@ -215,7 +215,7 @@ export default function SearchPage() {
                   <select
                     value={floorTo}
                     onChange={(e) => setFloorTo(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 text-sm"
+                    className="w-full cursor-pointer px-4 py-2 border border-gray-300 rounded-lg appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 text-sm"
                   >
                     <option value="">Seçin</option>
                     {isBuildingTypeSelected && Array.from({ length: 9 }, (_, i) => i + 1).map(floor => (
@@ -240,7 +240,7 @@ export default function SearchPage() {
                     <button
                       key={room}
                       onClick={() => toggleRoom(room)}
-                      className={`flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 text-sm font-medium transition-colors ${
+                      className={`flex-1 px-4 py-2 cursor-pointer border border-gray-300 rounded-lg text-gray-700 text-sm font-medium transition-colors ${
                         selectedRooms.includes(room)
                           ? 'bg-gray-100 '
                           : 'bg-white'
@@ -253,7 +253,7 @@ export default function SearchPage() {
                 <div>
                   <button
                     onClick={() => toggleRoom('4 otaqlı')}
-                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 text-sm font-medium transition-colors ${
+                    className={`w-full px-4 py-2 cursor-pointer border border-gray-300 rounded-lg text-gray-700 text-sm font-medium transition-colors ${
                       selectedRooms.includes('4 otaqlı')
                         ? 'bg-gray-100 '
                         : 'bg-white'
@@ -276,7 +276,7 @@ export default function SearchPage() {
               <button 
                 onClick={handleSearch}
                 disabled={!isFormValid()}
-                className="px-6 w-[48%] py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium text-sm"
+                className="px-6 w-[48%] cursor-pointer py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium text-sm"
               >
                 Axtar
               </button>
