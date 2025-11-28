@@ -43,6 +43,10 @@ export default function SelectionsPage() {
   const handleFinalCaptchaSuccess = () => {
     setShowCaptcha(false);
     setIsCaptchaVerified(false);
+    // Seçilen projeyi localStorage'a kaydet
+    if (selectedProject) {
+      localStorage.setItem('selectedProject', selectedProject);
+    }
     router.push('/demo/search');
   };
 
@@ -56,6 +60,10 @@ export default function SelectionsPage() {
     if (isCaptchaVerified) {
       setShowCaptcha(false);
       setIsCaptchaVerified(false);
+      // Seçilen projeyi localStorage'a kaydet
+      if (selectedProject) {
+        localStorage.setItem('selectedProject', selectedProject);
+      }
       router.push('/demo/search');
       return;
     }

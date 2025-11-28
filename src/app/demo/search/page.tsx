@@ -9,7 +9,9 @@ import { Captcha } from '../../components/chapca/Captcha';
 export default function SearchPage() {
   const router = useRouter();
   const { startPageTimer, stopPageTimer } = useTimer();
+  const [selectedProject, setSelectedProject] = useState<string>('');
   const [isBuildingTypeSelected, setIsBuildingTypeSelected] = useState(false);
+  const [selectedBuildingType, setSelectedBuildingType] = useState<string>('');
   const [floorFrom, setFloorFrom] = useState('');
   const [floorTo, setFloorTo] = useState('');
   const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
@@ -17,6 +19,14 @@ export default function SearchPage() {
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaKey, setCaptchaKey] = useState(0);
   const [isSearchCaptcha, setIsSearchCaptcha] = useState(false);
+
+  // Seçilen projeyi localStorage'dan oku
+  useEffect(() => {
+    const project = localStorage.getItem('selectedProject');
+    if (project) {
+      setSelectedProject(project);
+    }
+  }, []);
 
   useEffect(() => {
     startPageTimer('Axtarış');
@@ -26,6 +36,9 @@ export default function SearchPage() {
       stopPageTimer('Axtarış');
     };
   }, [startPageTimer, stopPageTimer]);
+
+  // Sumqayıt güzəştli mənzillər için özel durum
+  const isSumgayitGuzestli = selectedProject === 'sumgayit-guzestli';
 
   const handleCaptchaSuccess = () => {
     setShowCaptcha(false);
@@ -70,6 +83,7 @@ export default function SearchPage() {
 
   const handleReset = () => {
     setIsBuildingTypeSelected(false);
+    setSelectedBuildingType('');
     setFloorFrom('');
     setFloorTo('');
     setSelectedRooms([]);
@@ -78,7 +92,29 @@ export default function SearchPage() {
 
   // Form validasyonu - tüm alanlar doldurulmalı
   const isFormValid = () => {
+    if (isSumgayitGuzestli) {
+      return selectedBuildingType !== '' && floorFrom !== '' && floorTo !== '' && selectedRooms.length > 0;
+    }
     return isBuildingTypeSelected && floorFrom !== '' && floorTo !== '' && selectedRooms.length > 0;
+  };
+
+  // Mərtəbə aralığı belirleme
+  const getMaxFloor = () => {
+    if (isSumgayitGuzestli) {
+      return 15;
+    }
+    return 9;
+  };
+
+  // Bina tipi seçimi (Sumqayıt için)
+  const handleBuildingTypeSelect = (type: string) => {
+    if (selectedBuildingType === type) {
+      setSelectedBuildingType('');
+      setIsBuildingTypeSelected(false);
+    } else {
+      setSelectedBuildingType(type);
+      setIsBuildingTypeSelected(true);
+    }
   };
 
   const handleSearch = () => {
@@ -178,16 +214,46 @@ export default function SearchPage() {
             {/* Bina tipi - Buton */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Bina tipi <span className="text-red-500">*</span></label>
-              <button
-                onClick={() => setIsBuildingTypeSelected(!isBuildingTypeSelected)}
-                className={`w-full px-4 py-2 border cursor-pointer border-gray-300 rounded-lg text-gray-700 text-sm text-left transition-colors ${
-                  isBuildingTypeSelected
-                    ? 'bg-gray-100 '
-                    : 'bg-white '
-                }`}
-              >
-                9 mərtəbəli
-              </button>
+              {isSumgayitGuzestli ? (
+                <div className="flex flex-col gap-3">
+                  <div className="flex gap-3">
+                    {['9 mərtəbəli', '12 mərtəbəli'].map((type) => (
+                      <button
+                        key={type}
+                        onClick={() => handleBuildingTypeSelect(type)}
+                        className={`flex-1 px-4 py-2 border cursor-pointer rounded-lg text-sm font-medium transition-colors ${
+                          selectedBuildingType === type
+                            ? 'bg-teal-500 text-white border-teal-600'
+                            : 'bg-white text-gray-700 border-gray-300'
+                        }`}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => handleBuildingTypeSelect('15 mərtəbəli')}
+                    className={`w-full px-4 py-2 border cursor-pointer rounded-lg text-sm font-medium transition-colors ${
+                      selectedBuildingType === '15 mərtəbəli'
+                        ? 'bg-teal-500 text-white border-teal-600'
+                        : 'bg-white text-gray-700 border-gray-300'
+                    }`}
+                  >
+                    15 mərtəbəli
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsBuildingTypeSelected(!isBuildingTypeSelected)}
+                  className={`w-full px-4 py-2 border cursor-pointer border-gray-300 rounded-lg text-gray-700 text-sm text-left transition-colors ${
+                    isBuildingTypeSelected
+                      ? 'bg-gray-300 border-gray-700 '
+                      : 'bg-white '
+                  }`}
+                >
+                  9 mərtəbəli
+                </button>
+              )}
             </div>
 
             {/* Mərtəbə seçimi */}
@@ -199,11 +265,12 @@ export default function SearchPage() {
                     value={floorFrom}
                     onChange={(e) => setFloorFrom(e.target.value)}
                     className="w-full px-4 cursor-pointer py-2 border border-gray-300 rounded-lg appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 text-sm"
+                    disabled={isSumgayitGuzestli ? selectedBuildingType === '' : !isBuildingTypeSelected}
                   >
                     <option value="">Seçin</option>
-                    {isBuildingTypeSelected && Array.from({ length: 9 }, (_, i) => i + 1).map(floor => (
+                    {((isSumgayitGuzestli ? selectedBuildingType !== '' : isBuildingTypeSelected) && Array.from({ length: getMaxFloor() }, (_, i) => i + 1).map(floor => (
                       <option key={floor} value={floor}>{floor}</option>
-                    ))}
+                    )))}
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                     <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -216,11 +283,12 @@ export default function SearchPage() {
                     value={floorTo}
                     onChange={(e) => setFloorTo(e.target.value)}
                     className="w-full cursor-pointer px-4 py-2 border border-gray-300 rounded-lg appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 text-sm"
+                    disabled={isSumgayitGuzestli ? selectedBuildingType === '' : !isBuildingTypeSelected}
                   >
                     <option value="">Seçin</option>
-                    {isBuildingTypeSelected && Array.from({ length: 9 }, (_, i) => i + 1).map(floor => (
+                    {((isSumgayitGuzestli ? selectedBuildingType !== '' : isBuildingTypeSelected) && Array.from({ length: getMaxFloor() }, (_, i) => i + 1).map(floor => (
                       <option key={floor} value={floor}>{floor}</option>
-                    ))}
+                    )))}
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                     <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -234,15 +302,15 @@ export default function SearchPage() {
             {/* Otaq sayı - Çoklu seçim */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Otaq sayı <span className="text-red-500">*</span></label>
-              <div className="space-y-3">
-                <div className="flex gap-3">
-                  {['1 otaqlı', '2 otaqlı', '3 otaqlı'].map((room) => (
+              {isSumgayitGuzestli ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {['1 otaqlı', '2 otaqlı', '3 otaqlı', '4 otaqlı'].map((room) => (
                     <button
                       key={room}
                       onClick={() => toggleRoom(room)}
-                      className={`flex-1 px-4 py-2 cursor-pointer border border-gray-300 rounded-lg text-gray-700 text-sm font-medium transition-colors ${
+                      className={`w-full px-4 py-2 cursor-pointer border border-gray-300 rounded-lg text-gray-700 text-sm font-medium transition-colors ${
                         selectedRooms.includes(room)
-                          ? 'bg-gray-100 '
+                          ? 'bg-gray-100'
                           : 'bg-white'
                       }`}
                     >
@@ -250,19 +318,37 @@ export default function SearchPage() {
                     </button>
                   ))}
                 </div>
-                <div>
-                  <button
-                    onClick={() => toggleRoom('4 otaqlı')}
-                    className={`w-full px-4 py-2 cursor-pointer border border-gray-300 rounded-lg text-gray-700 text-sm font-medium transition-colors ${
-                      selectedRooms.includes('4 otaqlı')
-                        ? 'bg-gray-100 '
-                        : 'bg-white'
-                    }`}
-                  >
-                    4 otaqlı
-                  </button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    {['1 otaqlı', '2 otaqlı', '3 otaqlı'].map((room) => (
+                      <button
+                        key={room}
+                        onClick={() => toggleRoom(room)}
+                        className={`flex-1 px-4 py-2 cursor-pointer border border-gray-300 rounded-lg text-gray-700 text-sm font-medium transition-colors ${
+                          selectedRooms.includes(room)
+                            ? 'bg-gray-100 '
+                            : 'bg-white'
+                        }`}
+                      >
+                        {room}
+                      </button>
+                    ))}
+                  </div>
+                  <div>
+                    <button
+                      onClick={() => toggleRoom('4 otaqlı')}
+                      className={`w-full px-4 py-2 cursor-pointer border border-gray-300 rounded-lg text-gray-700 text-sm font-medium transition-colors ${
+                        selectedRooms.includes('4 otaqlı')
+                          ? 'bg-gray-100 '
+                          : 'bg-white'
+                      }`}
+                    >
+                      4 otaqlı
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Action Buttons */}
