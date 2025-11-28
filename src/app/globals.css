@@ -104,3 +104,85 @@ body {
     transform: translateX(5px);
   }
 }
+
+@keyframes slideUpFade {
+  0% {
+    transform: translate(-50%, 100%);
+    opacity: 0;
+  }
+  10% {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+  90% {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, 100%);
+    opacity: 0;
+  }
+}
+
+@keyframes slideDownShakeFade {
+  /* 0-28.5%: Yavaştan hızlanarak çık (1 saniye) - ease-out effect */
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 0;
+  }
+  7% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0.3;
+  }
+  14% {
+    transform: translate(-50%, -50%) scale(0.7);
+    opacity: 0.6;
+  }
+  21% {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0.9;
+  }
+  28.5% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  /* 28.5-42.8%: Bekle (0.5 saniye) */
+  42.8% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  /* 42.8-71.4%: Sağa sola hareket et (1 saniye) */
+  48% {
+    transform: translate(-48%, -50%) scale(1);
+  }
+  54% {
+    transform: translate(-52%, -50%) scale(1);
+  }
+  60% {
+    transform: translate(-48%, -50%) scale(1);
+  }
+  66% {
+    transform: translate(-52%, -50%) scale(1);
+  }
+  71.4% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  /* 71.4-100%: Hızlıdan yavaşa kaybol (1 saniye) - ease-in effect */
+  80% {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0.9;
+  }
+  88% {
+    transform: translate(-50%, -50%) scale(0.7);
+    opacity: 0.6;
+  }
+  94% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0.3;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 0;
+  }
+}

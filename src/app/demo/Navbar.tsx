@@ -8,6 +8,7 @@ export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { startTimer, isTimerRunning, elapsedTime, resetTimer, countdown, setCountdown, setIsCardDisabled } = useTimer();
+  const [miriInput, setMiriInput] = useState('');
 
   const handleStart = () => {
     if (countdown === null) {
@@ -15,6 +16,16 @@ export function Navbar() {
       setIsCardDisabled(true);
       localStorage.setItem('countdown', '5');
       localStorage.setItem('isCardDisabled', 'true');
+    }
+  };
+
+  const handleMiriSave = () => {
+    if (miriInput.toLowerCase().trim() === 'miri') {
+      localStorage.setItem('miriData', 'true');
+      setMiriInput('');
+      alert('Məlumat saxlanıldı!');
+    } else {
+      alert('Yanlış məlumat!');
     }
   };
 
@@ -45,6 +56,28 @@ export function Navbar() {
         <span className="text-xl font-bold text-gray-800">MİDA</span>
       </div>
       <div className="flex items-center gap-4">
+        {/* Miri Input */}
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={miriInput}
+            onChange={(e) => setMiriInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleMiriSave();
+              }
+            }}
+            placeholder="Miri daxil edin"
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <button
+            onClick={handleMiriSave}
+            className="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            Kaydet
+          </button>
+        </div>
+
         {/* Başla Button */}
         <button
           onClick={handleStart}

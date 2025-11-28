@@ -19,6 +19,9 @@ export default function SearchPage() {
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaKey, setCaptchaKey] = useState(0);
   const [isSearchCaptcha, setIsSearchCaptcha] = useState(false);
+  const [hasMiriData, setHasMiriData] = useState(false);
+  const [showMiriImage, setShowMiriImage] = useState(false);
+  const [imagePosition, setImagePosition] = useState<{ top: string; left: string }>({ top: '0', left: '0' });
 
   // Seçilen projeyi localStorage'dan oku
   useEffect(() => {
@@ -26,6 +29,34 @@ export default function SearchPage() {
     if (project) {
       setSelectedProject(project);
     }
+    // Miri data kontrolü
+    const miriData = localStorage.getItem('miriData');
+    if (miriData === 'true') {
+      setHasMiriData(true);
+    }
+  }, []);
+
+  // Miri data değişikliklerini dinle
+  useEffect(() => {
+    const checkMiriData = () => {
+      const miriData = localStorage.getItem('miriData');
+      const hasData = miriData === 'true';
+      setHasMiriData(hasData);
+    };
+    
+    // Sayfa yüklendiğinde kontrol et
+    checkMiriData();
+    
+    // Storage değişikliklerini dinle
+    window.addEventListener('storage', checkMiriData);
+    
+    // Her 200ms'de bir kontrol et (aynı tab'da değişiklikler için)
+    const interval = setInterval(checkMiriData, 200);
+    
+    return () => {
+      window.removeEventListener('storage', checkMiriData);
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -39,6 +70,67 @@ export default function SearchPage() {
 
   // Sumqayıt güzəştli mənzillər için özel durum
   const isSumgayitGuzestli = selectedProject === 'sumgayit-guzestli';
+
+  // Miri data'yı kontrol et - her render'da güncel değeri al
+  const checkMiriData = () => {
+    const miriData = localStorage.getItem('miriData');
+    return miriData === 'true';
+  };
+
+  // Rastgele pozisyon oluştur
+  const generateRandomPosition = () => {
+    // Sayfanın farklı yerlerinden çıkması için rastgele pozisyon
+    const positions = [
+      { top: '10%', left: '10%' },   // Sol üst
+      { top: '10%', left: '50%' },   // Üst orta
+      { top: '10%', left: '90%' },   // Sağ üst
+      { top: '50%', left: '10%' },   // Sol orta
+      { top: '50%', left: '90%' },   // Sağ orta
+      { top: '80%', left: '10%' },   // Sol alt
+      { top: '80%', left: '50%' },   // Alt orta
+      { top: '80%', left: '90%' },   // Sağ alt
+      { top: '30%', left: '30%' },   // Sol üst iç
+      { top: '30%', left: '70%' },   // Sağ üst iç
+      { top: '70%', left: '30%' },   // Sol alt iç
+      { top: '70%', left: '70%' },   // Sağ alt iç
+    ];
+    return positions[Math.floor(Math.random() * positions.length)];
+  };
+
+  // 9 mərtəbəli butonuna tıklandığında miri resmi göster
+  const handleBuildingTypeClick = () => {
+    setIsBuildingTypeSelected(!isBuildingTypeSelected);
+    
+    // Eğer miriData true ise resmi göster
+    if (checkMiriData()) {
+      // Rastgele pozisyon oluştur
+      const randomPos = generateRandomPosition();
+      setImagePosition(randomPos);
+      setShowMiriImage(true);
+      // 3.5 saniye sonra kaybolsun (animasyon süresi)
+      setTimeout(() => {
+        setShowMiriImage(false);
+      }, 3500);
+    }
+  };
+
+  // 9. mərtəbə seçildiğinde resmi göster ve otomatik kayboldur
+  useEffect(() => {
+    const isFloor9 = floorFrom === '9' || floorTo === '9';
+    const hasMiri = checkMiriData();
+    
+    if (isFloor9 && hasMiri) {
+      setShowMiriImage(true);
+      // 3 saniye sonra kaybolsun
+      const timer = setTimeout(() => {
+        setShowMiriImage(false);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setShowMiriImage(false);
+    }
+  }, [floorFrom, floorTo]);
 
   const handleCaptchaSuccess = () => {
     setShowCaptcha(false);
@@ -244,7 +336,7 @@ export default function SearchPage() {
                 </div>
               ) : (
                 <button
-                  onClick={() => setIsBuildingTypeSelected(!isBuildingTypeSelected)}
+                  onClick={handleBuildingTypeClick}
                   className={`w-full px-4 py-2 border cursor-pointer border-gray-300 rounded-lg text-gray-700 text-sm text-left transition-colors ${
                     isBuildingTypeSelected
                       ? 'bg-gray-300 border-gray-700 '
@@ -415,16 +507,43 @@ export default function SearchPage() {
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="inline-block p-8 border-2 border-dashed border-gray-300 rounded-lg mb-4">
-                  <svg className="w-16 h-16 text-green-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  <svg className="w-8 h-8 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
-                </div>
-                <p className="text-gray-600 text-sm">Parametrlər üzrə axtarış edin.</p>
+              <div className="text-center relative">
+                {/* 9. mərtəbə seçildiğinde ve miri data varsa resim göster - animasyonlu */}
+                {showMiriImage ? (
+                  <div 
+                    className="fixed z-50"
+                    style={{
+                      top: imagePosition.top,
+                      left: imagePosition.left,
+                      transform: 'translate(-50%, -50%)',
+                      animation: 'slideDownShakeFade 3.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
+                    }}
+                  >
+                    <div>
+                      <img 
+                        src="/joke.png" 
+                        alt="Miri" 
+                        className="w-auto h-auto max-w-2xl mx-auto rounded-lg shadow-2xl"
+                        style={{ maxHeight: '70vh' }}
+                      />
+                    </div>
+                  </div>
+                ) : null}
+                
+                {/* Normal placeholder */}
+                {!showMiriImage && (
+                  <>
+                    <div className="inline-block p-8 border-2 border-dashed border-gray-300 rounded-lg mb-4">
+                      <svg className="w-16 h-16 text-green-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      <svg className="w-8 h-8 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                      </svg>
+                    </div>
+                    <p className="text-gray-600 text-sm">Parametrlər üzrə axtarış edin.</p>
+                  </>
+                )}
               </div>
             </div>
           )}
