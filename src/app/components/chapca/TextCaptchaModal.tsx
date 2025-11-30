@@ -90,7 +90,8 @@ export function TextCaptchaModal({ onSuccess, onVerified }: TextCaptchaModalProp
   };
 
   const handleVerify = () => {
-    if (userInput.toLowerCase() === captchaText.toLowerCase()) {
+    // Büyük-küçük harf duyarlı karşılaştırma
+    if (userInput === captchaText) {
       setIsVerified(true);
       onVerified();
     } else {

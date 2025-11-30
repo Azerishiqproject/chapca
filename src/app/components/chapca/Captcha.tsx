@@ -6,13 +6,14 @@ import { TextCaptchaModal } from './TextCaptchaModal';
 import { DateCaptchaModal } from './DateCaptchaModal';
 import { TodayDateCaptchaModal } from './TodayDateCaptchaModal';
 import { BirthDateCaptchaModal } from './BirthDateCaptchaModal';
+import { QuestionCaptchaModal } from './QuestionCaptchaModal';
 
 interface CaptchaProps {
   onSuccess: () => void;
   onVerified?: () => void;
 }
 
-type CaptchaType = 'number' | 'text' | 'date' | 'today-date' | 'birth-date';
+type CaptchaType = 'number' | 'text' | 'date' | 'today-date' | 'birth-date' | 'question';
 
 export function Captcha({ onSuccess, onVerified }: CaptchaProps) {
   const [captchaType, setCaptchaType] = useState<CaptchaType | null>(null);
@@ -87,7 +88,7 @@ export function Captcha({ onSuccess, onVerified }: CaptchaProps) {
     
     // Aktif CAPTCHA türlerini localStorage'dan al
     const savedEnabledTypes = localStorage.getItem('enabledCaptchaTypes');
-    let enabledTypes: CaptchaType[] = ['number', 'text', 'date', 'today-date', 'birth-date'];
+    let enabledTypes: CaptchaType[] = ['number', 'text', 'date', 'today-date', 'birth-date', 'question'];
     if (savedEnabledTypes) {
       try {
         const parsed = JSON.parse(savedEnabledTypes) as CaptchaType[];
@@ -129,6 +130,21 @@ export function Captcha({ onSuccess, onVerified }: CaptchaProps) {
     // Doğum tarixi CAPTCHA'sı - sadece 1 kere göster
     if (enabledTypes.includes('birth-date') && savedBirthDate && !shownSpecialCaptchas.includes('birth-date')) {
       baseTypes.push('birth-date'); // Sadece 1 kere ekle
+    }
+    
+    // Soru CAPTCHA'sı - sorular varsa ekle
+    if (enabledTypes.includes('question')) {
+      const savedQuestions = localStorage.getItem('captchaQuestions');
+      if (savedQuestions) {
+        try {
+          const questions = JSON.parse(savedQuestions);
+          if (Array.isArray(questions) && questions.length > 0) {
+            baseTypes.push('question');
+          }
+        } catch (e) {
+          // Invalid JSON, skip
+        }
+      }
     }
     
     console.log('=== CAPTCHA Setup ===');
@@ -253,6 +269,9 @@ export function Captcha({ onSuccess, onVerified }: CaptchaProps) {
     
     case 'birth-date':
       return <BirthDateCaptchaModal key={captchaKey} onSuccess={handleSuccess} />;
+    
+    case 'question':
+      return <QuestionCaptchaModal key={captchaKey} onSuccess={handleSuccess} />;
     
     default:
       return null;

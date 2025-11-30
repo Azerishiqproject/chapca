@@ -36,12 +36,12 @@ export function TodayDateCaptchaModal({ onSuccess }: TodayDateCaptchaModalProps)
     }
   };
 
-  // Generate today's date CAPTCHA
+  // Generate today's date CAPTCHA (fixed to 03.12.2025)
   const generateTodayDateCaptcha = () => {
-    const today = new Date();
-    const day = today.getDate().toString().padStart(2, '0');
-    const month = (today.getMonth() + 1).toString().padStart(2, '0');
-    const year = today.getFullYear().toString();
+    // Fixed date: 03.12.2025
+    const day = '03';
+    const month = '12';
+    const year = '2025';
     
     const separators = ['/', '.', '-', ' '];
     const separator = separators[Math.floor(Math.random() * separators.length)];
@@ -49,12 +49,12 @@ export function TodayDateCaptchaModal({ onSuccess }: TodayDateCaptchaModalProps)
     return `${day}${separator}${month}${separator}${year}`;
   };
 
-  // Generate today's date for numpad (always uses / separator)
+  // Generate today's date for numpad (always uses / separator, fixed to 03.12.2025)
   const generateTodayDateNumpadCaptcha = () => {
-    const today = new Date();
-    const day = today.getDate().toString().padStart(2, '0');
-    const month = (today.getMonth() + 1).toString().padStart(2, '0');
-    const year = today.getFullYear().toString();
+    // Fixed date: 03.12.2025
+    const day = '03';
+    const month = '12';
+    const year = '2025';
     
     return `${day}/${month}/${year}`;
   };
